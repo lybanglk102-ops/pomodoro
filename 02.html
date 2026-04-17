@@ -521,10 +521,6 @@ header.app-header{display:flex; align-items:center; justify-content:space-betwee
       .app-content { padding: 12px; }
     }
 
-    #view-timer.no-subtopic-selected > .panel-bg:not(:first-child) { display: none; }
-    #view-timer.no-subtopic-selected .timer-header > .presets { display: none; }
-    #view-timer.no-subtopic-selected .timer { display: none; }
-
     header.app-header .actions #btnFullscreen { background: transparent; border: none; box-shadow: none; }
     header.app-header .actions #btnFullscreen:hover { background: var(--muted); filter: none; }
     header.app-header .actions #btnFullscreen:hover::before { opacity: 0; }
@@ -905,7 +901,7 @@ header.app-header{display:flex; align-items:center; justify-content:space-betwee
       <header class="app-header panel-bg">
         <div class="row" style="gap:12px; align-items:center; flex:0 1 auto">
           <strong>📚 Pomodoro Study App</strong>
-          <span class="badge" id="selectedContext">Chưa chọn Chủ đề con</span>
+          <span class="badge" id="selectedContext">⚡ Đang trong Phiên Nhanh</span>
         </div>
         <div class="actions">
           <button class="btn ghost small" id="btnDashboard" title="Dashboard Tổng quan">📊 Tổng Quan </button>
@@ -961,6 +957,19 @@ header.app-header{display:flex; align-items:center; justify-content:space-betwee
             </div>
             
             <div class="controls">
+            <!-- Inline Tagging (Quick Start) -->
+            <div id="quick-tag-wrapper" style="flex-basis: 100%; text-align: center; margin-top: 16px; min-height: 42px;">
+                <div id="quick-tag-input-mode">
+                   <input type="text" id="quickTagInput" autocomplete="off" placeholder="Đang tập trung làm gì... (Enter để lưu)" style="max-width: 350px; width: 100%; padding: 10px 16px; font-size: 14px; text-align: center; border-radius: 20px; border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.05);" />
+                </div>
+                <div id="quick-tag-chip-mode" style="display: none; justify-content: center; align-items: center;">
+                    <span class="badge" style="background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 20px; padding: 6px 14px; font-weight: 500; display: inline-flex; align-items: center; gap: 10px; font-size: 14px; color: var(--text);">
+                        Đang tập trung: <strong id="quickTagDisplayText" style="color: var(--acc); max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"></strong>
+                        
+                        <span id="quickTagClear" style="cursor: pointer; opacity: 0.8; font-size: 12px; transition: opacity 0.2s;" title="Gỡ bỏ nhãn">✕</span>
+                    </span>
+                </div>
+            </div>
               <button class="btn acc" id="btnStart" aria-label="Bắt đầu (Space)">▶️ Bắt đầu</button>
               <button class="btn warn hidden" id="btnFinishFlow" aria-label="Kết thúc phiên làm việc">🧘 Bắt đầu nghỉ</button>
               <button class="btn" id="btnPause" aria-label="Tạm dừng (Space)">⏸️ Tạm dừng</button>
@@ -998,7 +1007,7 @@ header.app-header{display:flex; align-items:center; justify-content:space-betwee
             </div>
             <div id="ai" class="tab-content">
                 <div class="panel-header" style="margin-bottom: 8px; padding: 0;">
-                    <h4 style="margin:0;">Gemini cho: <span id="currentSubtopicNameChat">(chưa chọn)</span></h4>
+                    <h4 style="margin:0;">Gemini cho: <span id="currentSubtopicNameChat">⚡ Phiên Nhanh</span></h4>
                     <div class="actions">
                         <button id="btnClearChat" class="btn small danger" title="Xóa lịch sử">🗑️</button>
                     </div>
@@ -1044,7 +1053,7 @@ header.app-header{display:flex; align-items:center; justify-content:space-betwee
         });
       </script>
         <section class="panel panel-bg">
-            <h3 style="margin:0 0 12px 0;">Thống kê & Lịch sử — <span id="currentSubtopicName">(chưa chọn)</span></h3>
+            <h3 style="margin:0 0 12px 0;">Thống kê & Lịch sử — <span id="currentSubtopicName">⚡ Phiên Nhanh</span></h3>
             <div class="stats-grid">
               <div class="stat-card"><h4>Tổng thời gian</h4><div class="stat-value" id="statTotal">0 phút</div></div>
               <div class="stat-card"><h4>Phiên</h4><div class="stat-value" id="statSessions">0</div></div>
@@ -1583,7 +1592,7 @@ header.app-header{display:flex; align-items:center; justify-content:space-betwee
         navTooltipGuide: "Hướng dẫn",
         headerDashboard: "📊 Tổng Quan",
         headerFeedback: "💬 Phản Hồi",
-        selectedContextNone: "Chưa chọn Chủ đề con",
+        selectedContextNone: "⚡ Đang trong Phiên Nhanh",
         welcomeHeading: "Chào mừng đến với Pomodoro Study App!",
         welcomeText: "Hãy bắt đầu bằng cách chọn một Chủ đề con hoặc tạo Chủ đề/Chủ đề con mới.",
         btnHelpCreateTopic: "+ Tạo Chủ đề Mới",
@@ -2490,136 +2499,9 @@ header.app-header{display:flex; align-items:center; justify-content:space-betwee
         input.focus(); input.select();
         const okHandler = () => { okCallback(input.value); cleanup(); };
         const cancelHandler = () => cleanup();
-        const keyHandler = (e) => { if (e.key === 'Enter') okHandler(); if (e.key === 'Escape') cancelHandler(); };
-        $('#btnGenericOk').onclick = okHandler; $('#btnGenericCancel').onclick = cancelHandler; input.onkeydown = keyHandler;
-        function cleanup() { $('#modalGeneric').classList.remove('show'); $('#btnGenericOk').onclick = null; $('#btnGenericCancel').onclick = null; input.onkeydown = null; try { releaseFocus(); } catch(_) {} }
-    }
-    function showConfirmModal(title, message, okCallback) {
-        $('#genericTitle').textContent = title;
-        const msgEl = $('#genericMessage'); msgEl.textContent = message; msgEl.classList.remove('hidden');
-        $('#genericInput').classList.add('hidden'); $('#modalGeneric').classList.add('show');
-        try { trapFocus($('#modalGeneric')); } catch(_) {}
-        const okHandler = () => { okCallback(true); cleanup(); };
-        const cancelHandler = () => { okCallback(false); cleanup(); };
-        $('#btnGenericOk').onclick = okHandler; $('#btnGenericCancel').onclick = cancelHandler;
-        function cleanup() { $('#modalGeneric').classList.remove('show'); $('#btnGenericOk').onclick = null; $('#btnGenericCancel').onclick = null; try { releaseFocus(); } catch(_) {} }
-    }
-    // Modal ghi chú cho phiên vừa hoàn thành
-    let pendingNoteSessionId = null;
-    function openNoteModal(sessionId) {
-        pendingNoteSessionId = sessionId || null;
-        const modal = $('#modalNote');
-        if (!modal) return;
-        const text = $('#noteText');
-        if (text) { try { text.value = ''; } catch(_) {} }
-        modal.classList.add('show');
-        try { trapFocus(modal); } catch(_) {}
-    }
-    function closeNoteModal() {
-        const modal = $('#modalNote');
-        if (!modal) return;
-        modal.classList.remove('show');
-        pendingNoteSessionId = null;
-        try { releaseFocus(); } catch(_) {}
-    }
-    async function switchView(viewId) {
-        $$('.view').forEach(v => v.classList.remove('active'));
-        $(`#view-${viewId}`).classList.add('active');
-        $$('.nav-btn').forEach(b => b.classList.remove('active'));
-        const navBtn = $(`.nav-btn[data-view="${viewId}"]`);
-        if (navBtn) navBtn.classList.add('active');
-        data.settings.currentView = viewId;
-        await saveData();
-        if (viewId === 'stats') {
-            renderDashboard();
-        }
-    }
-    function closeAllMenus() {
-        $$('.actions-menu.show').forEach(menu => menu.classList.remove('show'));
-        $$('.topic-item.menu-active').forEach(item => item.classList.remove('menu-active'));
-    }
-    function renderTopics(){
-      const wrap = $('#topicsList');
-      if (!wrap) return;
-      wrap.innerHTML='';
-      const collapsedMap = data.settings.collapsedTopics || {};
-      data.topics.forEach(topic => {
-        const box = document.createElement('div');
-        box.className='topic-item';
-        box.dataset.tid = topic.id;
-        const header = document.createElement('div');
-        header.className='topic-header';
-        const isCollapsed = !!collapsedMap[topic.id];
-        const chev = document.createElement('button');
-        chev.className = 'chev btn small ghost';
-        chev.setAttribute('aria-expanded', String(!isCollapsed));
-        chev.innerHTML = '<span class="ico">▾</span>';
-        const title = document.createElement('div');
-        title.className='topic-title';
-        title.textContent = topic.name;
-        const act = document.createElement('div');
-        act.className='topic-actions';
-        const bAdd = document.createElement('button');
-        bAdd.className='btn small';
-        bAdd.innerHTML = '＋ Thêm';
-        bAdd.title = 'Thêm Chủ đề con';
-        const menuContainer = document.createElement('div');
-        menuContainer.style.position = 'relative';
-        const bMore = document.createElement('button');
-        bMore.className = 'btn small ghost actions-menu-btn';
-        bMore.innerHTML = '...';
-        bMore.title = 'Thêm tùy chọn';
-        const menu = document.createElement('div');
-        menu.className = 'actions-menu';
-        const bEdit = document.createElement('button');
-        bEdit.className = 'menu-item';
-        bEdit.innerHTML = 'Sửa tên Chủ đề';
-        const bDel = document.createElement('button');
-        bDel.className = 'menu-item danger';
-        bDel.innerHTML = 'Xóa Chủ đề';
-        menu.append(bEdit, bDel);
-        menuContainer.append(bMore, menu);
-        act.append(bAdd, menuContainer);
-        header.append(chev, title, act);
-        // Chevron toggles collapse/expand of subtopics
-        chev.addEventListener('click', async (e) => {
-          e.stopPropagation();
-          const currentlyCollapsed = !!collapsedMap[topic.id];
-          if (currentlyCollapsed) { delete collapsedMap[topic.id]; } else { collapsedMap[topic.id] = true; }
-          data.settings.collapsedTopics = collapsedMap;
-          await storageManager.updateSettings(data.settings);
-          renderTopics();
-        });
-        const toggleTopic = async () => {
-          const currentlyCollapsed = !!collapsedMap[topic.id];
-          if (currentlyCollapsed) { delete collapsedMap[topic.id]; } else { collapsedMap[topic.id] = true; }
-          data.settings.collapsedTopics = collapsedMap;
-          await storageManager.updateSettings(data.settings);
-          renderTopics();
+        const keyHandler = (e) => { if (e.key === 'Enter') okHandler(); 
+          await toggleTopic();
         };
-        // Allow clicking the topic header to toggle subtopics
-        // (ignore clicks on actual interactive controls only)
-        header.addEventListener('click', async (e) => {
-          const t = e.target;
-          if (t && t.closest) {
-            if (t.closest('.actions-menu') || t.closest('.actions-menu-btn') || t.closest('button') || t.closest('input,select,textarea')) {
-              return; // user interacted with a control, don't toggle
-            }
-          }
-          e.stopPropagation();
-          await toggleTopic();
-        });
-        // Make the title area itself a large click target to toggle
-        title.addEventListener('click', async (e) => { e.stopPropagation(); await toggleTopic(); });
-        // Also allow clicking anywhere on the topic card (outside subtopics and controls) to toggle
-        box.addEventListener('click', async (e) => {
-          const t = e.target;
-          if (t && t.closest) {
-            if (t.closest('.subtopics')) return;
-            if (t.closest('.actions-menu') || t.closest('.actions-menu-btn') || t.closest('button') || t.closest('input,select,textarea')) return;
-          }
-          await toggleTopic();
-        });
         const subs = document.createElement('div');
         subs.className='subtopics' + (isCollapsed? ' hidden':'');
         subs.dataset.tid = topic.id;
@@ -2695,7 +2577,7 @@ header.app-header{display:flex; align-items:center; justify-content:space-betwee
         bDel.addEventListener('click', (e)=> e.stopPropagation());
         box.append(header, subs);
         wrap.appendChild(box);
-      });
+      };
       if (window.Sortable) {
         const topicsListEl = document.getElementById('topicsList');
         if (topicsListEl) {
@@ -2744,7 +2626,7 @@ header.app-header{display:flex; align-items:center; justify-content:space-betwee
           });
         }
       }
-    }
+    
     function selectSubtopic(topicId, subId) {
         const mainEl = $('.app-content');
         const oldSubtopic = getCurrentSubtopic();
@@ -2780,13 +2662,28 @@ header.app-header{display:flex; align-items:center; justify-content:space-betwee
     }
     function getCurrentSubtopic(){ const tid=data.settings.selectedTopicId, sid=data.settings.selectedSubtopicId; if(!tid||!sid) return null; const t=data.topics.find(x=>x.id===tid); if(!t) return null; return t.subtopics.find(x=>x.id===sid) || null; }
     function renderContextBadge(){
-      const s=getCurrentSubtopic();
-      const name = s ? s.name : '(chưa chọn)';
+      const s = getCurrentSubtopic();
+      const t = data.settings.selectedTopicId ? data.topics.find(x => x.id === data.settings.selectedTopicId) : null;
+      const name = s ? s.name : '⚡ Phiên Nhanh';
+      
+      let headerText = '⚡ Đang tập trung';
+      if (t && t.id === 'system_inbox_topic') {
+          headerText = '⚡ Đang trong Phiên Nhanh';
+      } else if (t && t.isQuick) {
+          headerText = '⚡ Đang trong Phiên Nhanh'; // Keep header discreet if Chip is active
+      } else if (t && s) {
+          headerText = `📘 ${t.name} > ${s.name}`;
+      } else if (t) {
+          headerText = `📘 ${t.name}`;
+      }
+
       const selectedContext = $('#selectedContext');
+      if (selectedContext) selectedContext.textContent = headerText;
+      
       const currentName = $('#currentSubtopicName');
-      const currentChatName = $('#currentSubtopicNameChat');
-      if (selectedContext) selectedContext.textContent = s? `Chủ đề con: ${s.name}`:'Chưa chọn Chủ đề con';
       if (currentName) currentName.textContent = name;
+      
+      const currentChatName = $('#currentSubtopicNameChat');
       if (currentChatName) currentChatName.textContent = name;
     }
     function renderSubtopicTasks() {
@@ -4520,7 +4417,7 @@ function exportSummary(sum) {
             if (hasSubtopic) {
                 timerView.classList.remove('no-subtopic-selected');
             } else {
-                timerView.classList.add('no-subtopic-selected');
+                // timerView.classList.add('no-subtopic-selected');
             }
         }
     }
@@ -4544,6 +4441,7 @@ function exportSummary(sum) {
         }
     }
     function renderAll(){
+        try { if(typeof syncQuickTagUI === 'function') syncQuickTagUI(); } catch(e){}
         updatePresetButtonsText();
         const currentPreset = data.settings.preset;
         $$('.presets button').forEach(button => {
@@ -4617,6 +4515,31 @@ function exportSummary(sum) {
         }
         data = window.data = merged;
         normalizeDataStructure(data);
+
+        const INBOX_TOPIC_ID = 'system_inbox_topic';
+        const INBOX_SUB_ID = 'system_inbox_sub';
+        let inboxTopicIdx = data.topics.findIndex(t => t.id === INBOX_TOPIC_ID);
+        let inboxTopic;
+        if (inboxTopicIdx === -1) {
+            inboxTopic = { id: INBOX_TOPIC_ID, name: '📥 Hộp Thư Đến', createdAt: 0, subtopics: [] };
+            data.topics.unshift(inboxTopic);
+            await storageManager.add('topics', inboxTopic);
+        } else {
+            inboxTopic = data.topics[inboxTopicIdx];
+            // move to front
+            data.topics.splice(inboxTopicIdx, 1);
+            data.topics.unshift(inboxTopic);
+        }
+        
+        let inboxSub = inboxTopic.subtopics.find(s => s.id === INBOX_SUB_ID);
+        if (!inboxSub) {
+            inboxSub = { id: INBOX_SUB_ID, topicId: INBOX_TOPIC_ID, name: '⚡ Phiên Nhanh', createdAt: 0, methods: [], 
+                         stats: { totalMinutes: 0, sessionsCompleted: 0, tasksCompleted: 0 }, sessions: [], 
+                         timerState: { state: 'idle', remaining: 0, segmentTotal: 0, cycleIndex: 0, prevState: null } };
+            inboxTopic.subtopics.unshift(inboxSub);
+            await storageManager.add('subtopics', inboxSub);
+        }
+
         await ensureValidSelection();
         await seedAchievedMilestones();
         renderAll();
@@ -4803,6 +4726,141 @@ function exportSummary(sum) {
     // =========================================================
 
     loadLanguage(localStorage.getItem('lang') || 'vi').then(initializeApp);
+    
+    // QUICK TAG INPUT LISTENER
+    document.addEventListener('DOMContentLoaded', () => {
+        const quickTagInput = document.getElementById('quickTagInput');
+        if (quickTagInput) {
+            quickTagInput.addEventListener('keydown', async (e) => {
+                if (e.key === 'Enter' && quickTagInput.value.trim() !== '') {
+                    const title = quickTagInput.value.trim();
+                    quickTagInput.value = '';
+                    
+                    const newTopic = { id: 'topic_' + Date.now(), name: title, createdAt: Date.now(), isQuick: true, subtopics: [] };
+                    await storageManager.add('topics', newTopic);
+                    if (!data.topics) data.topics = [];
+                    data.topics.push(newTopic);
+                    
+                    const newSub = { id: 'sub_' + Date.now(), topicId: newTopic.id, name: 'Phiên Nhanh', createdAt: Date.now(), methods: [], stats: { totalMinutes:0, sessionsCompleted:0, tasksCompleted:0 }, sessions: [], timerState: { state:'idle', remaining:0, segmentTotal:0, cycleIndex:0, prevState: null } };
+                    await storageManager.add('subtopics', newSub);
+                    newTopic.subtopics.push(newSub);
+                    
+                    data.settings.selectedTopicId = newTopic.id;
+                    data.settings.selectedSubtopicId = newSub.id;
+                    await storageManager.updateSettings(data.settings);
+                    
+                    toast('Đã tạo và chuyển sang chủ đề: ' + title);
+                    renderAll();
+                }
+            });
+        }
+    });
+
+    
+    // --- CHIP & QUICK TAG LOGIC ---
+    function syncQuickTagUI() {
+        const inputMode = document.getElementById('quick-tag-input-mode');
+        const chipMode = document.getElementById('quick-tag-chip-mode');
+        const wrapper = document.getElementById('quick-tag-wrapper');
+        const displayText = document.getElementById('quickTagDisplayText');
+        const inputEl = document.getElementById('quickTagInput');
+        if (!inputMode || !chipMode || !wrapper) return;
+
+        const t = data.topics.find(x => x.id === data.settings.selectedTopicId);
+        if (!t) return;
+
+        const isInbox = (t.id === 'system_inbox_topic');
+        const isQuick = !!t.isQuick;
+
+        if (!isInbox && !isQuick) {
+            // STRUCTURED MODE -> Hide entire wrapper completely
+            wrapper.style.display = 'none';
+            return;
+        } else {
+            // QUICK MODE -> Show wrapper
+            wrapper.style.display = 'flex';
+        }
+
+        if (isInbox) {
+            // No quick tag exists, show input box
+            inputMode.style.display = 'block';
+            chipMode.style.display = 'none';
+            if (inputEl) inputEl.value = '';
+        } else if (isQuick) {
+            // Show chip
+            inputMode.style.display = 'none';
+            chipMode.style.display = 'flex';
+            if (displayText) {
+                displayText.textContent = t.name;
+            }
+        }
+    }
+
+    setTimeout(() => {
+        const inputEl = document.getElementById('quickTagInput');
+        const btnEdit = document.getElementById('quickTagEdit');
+        const btnClear = document.getElementById('quickTagClear');
+
+        if (inputEl) {
+            inputEl.addEventListener('keydown', async (e) => {
+                
+                if (e.key === 'Enter' && inputEl.value.trim() !== '') {
+                    const title = inputEl.value.trim();
+                    {
+                        const newTopic = { id: 'topic_' + Date.now(), name: title, createdAt: Date.now(), isQuick: true, subtopics: [] };
+                        await storageManager.add('topics', newTopic);
+                        if (!data.topics) data.topics = [];
+                        data.topics.push(newTopic);
+                        
+                        const newSub = { id: 'sub_' + Date.now(), topicId: newTopic.id, name: 'Phiên Nhanh', createdAt: Date.now(), methods: [], 
+                                         stats: { totalMinutes:0, sessionsCompleted:0, tasksCompleted:0 }, sessions: [], 
+                                         timerState: { state:'idle', remaining:0, segmentTotal:0, cycleIndex:0, prevState: null } };
+                        await storageManager.add('subtopics', newSub);
+                        newTopic.subtopics.push(newSub);
+                        
+                        data.settings.selectedTopicId = newTopic.id;
+                        data.settings.selectedSubtopicId = newSub.id;
+                        await storageManager.updateSettings(data.settings);
+                    }
+                    
+toast('Đã gắn nhãn: ' + title);
+                    syncQuickTagUI();
+                    renderAll();
+                }
+            });
+            }
+
+        if (btnClear) {
+            btnClear.addEventListener('click', async () => {
+                const curTopicId = data.settings.selectedTopicId;
+                const curTopic = data.topics.find(t => t.id === curTopicId);
+                
+                // Set explicitly back to Inbox
+                data.settings.selectedTopicId = 'system_inbox_topic';
+                data.settings.selectedSubtopicId = 'system_inbox_sub';
+                await storageManager.updateSettings(data.settings);
+                
+                // Destroy the previous Quick Topic if it was a quick tag to keep DB clean
+                if (curTopic && curTopic.isQuick) {
+                    data.topics = data.topics.filter(t => t.id !== curTopicId);
+                    await storageManager.delete('topics', curTopicId);
+                    if (curTopic.subtopics) {
+                        for (const sub of curTopic.subtopics) {
+                            await storageManager.delete('subtopics', sub.id);
+                        }
+                    }
+                }
+                
+                syncQuickTagUI();
+                renderAll();
+                toast('Đã gỡ nhãn, trở về Phiên Nhanh');
+            });
+        }
+        
+        syncQuickTagUI();
+        
+    }, 1000);
+
     </script>
 </body>
 </html>
