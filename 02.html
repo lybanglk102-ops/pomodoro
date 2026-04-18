@@ -521,9 +521,7 @@ header.app-header{display:flex; align-items:center; justify-content:space-betwee
       .app-content { padding: 12px; }
     }
 
-    #view-timer.no-subtopic-selected > .panel-bg:not(:first-child) { display: none; }
-    #view-timer.no-subtopic-selected .timer-header > .presets { display: none; }
-    #view-timer.no-subtopic-selected .timer { display: none; }
+    /* no-subtopic-selected: đã bỏ — timer luôn hiển thị (Quick-Start UX) */
 
     header.app-header .actions #btnFullscreen { background: transparent; border: none; box-shadow: none; }
     header.app-header .actions #btnFullscreen:hover { background: var(--muted); filter: none; }
@@ -924,11 +922,9 @@ header.app-header{display:flex; align-items:center; justify-content:space-betwee
       <div id="view-timer" class="view active">
         <section class="panel panel-bg">
           <div class="timer-header">
-            <div id="welcomePanel" class="hidden panel-bg" style="text-align:center; padding: 20px; border-radius: var(--radius); width: 100%;">
-                <h3>Chào mừng đến với Pomodoro Study App!</h3>
-                <p>Hãy bắt đầu bằng cách chọn một <strong>Chủ đề con</strong> hoặc tạo Chủ đề/Chủ đề con mới.</p>
-                <button class="btn acc" id="btnHelpCreateTopic">＋ Tạo Chủ đề Mới</button>
-            </div>
+            <!-- welcomePanel ẩn vĩnh viễn: Quick-Start UX — timer luôn sẵn sàng -->
+            <div id="welcomePanel" class="hidden" style="display:none!important"></div>
+            <button class="btn acc" id="btnHelpCreateTopic" style="display:none">＋ Tạo Chủ đề Mới</button>
             <div class="presets" role="group" aria-label="Chọn chế độ preset">
                 <button id="btnPresetA" class="btn small ghost" data-preset="A"></button>
                 <button id="btnPresetB" class="btn small ghost" data-preset="B"></button>
@@ -2468,16 +2464,63 @@ header.app-header{display:flex; align-items:center; justify-content:space-betwee
           toast(`Lỗi lưu dữ liệu: ${err.message}`);
         }
       }
+        // === DEFAULT SYSTEM SUBTOPIC IDs ===
+        const DEFAULT_TOPIC_ID = '__sys_default_topic__';
+        const DEFAULT_SUBTOPIC_ID = '__sys_default_sub__';
+
+        /**
+         * Đảm bảo chủ đề hệ thống mặc định luôn tồn tại trong data.
+         * Phiên không gắn nhãn sẽ đổ vào đây.
+         */
+        async function ensureDefaultSubtopic() {
+          // Kiểm tra xem topic mặc định đã có chưa
+          let defTopic = data.topics.find(t => t.id === DEFAULT_TOPIC_ID);
+          if (!defTopic) {
+            defTopic = {
+              id: DEFAULT_TOPIC_ID,
+              name: '📥 Quick Sessions',
+              _isSystem: true,
+              subtopics: []
+            };
+            // Chèn lên đầu danh sách
+            data.topics.unshift(defTopic);
+            try {
+              const { subtopics: _s, ...topicData } = defTopic;
+              await storageManager.add('topics', topicData);
+            } catch(_) {}
+          } else {
+            defTopic._isSystem = true; // Đảm bảo flag luôn có
+          }
+          // Kiểm tra subtopic mặc định
+          let defSub = defTopic.subtopics.find(s => s.id === DEFAULT_SUBTOPIC_ID);
+          if (!defSub) {
+            defSub = {
+              id: DEFAULT_SUBTOPIC_ID,
+              topicId: DEFAULT_TOPIC_ID,
+              name: 'Chưa phân loại',
+              _isSystem: true,
+              tasks: [], generalNotes: [], summaries: [], chatHistory: [],
+              methods: [], stats: { totalMinutes: 0, sessionsCompleted: 0, tasksCompleted: 0 },
+              sessions: [],
+              timerState: { state: 'idle', prevState: null, remaining: 0, segmentTotal: 0, cycleIndex: 0 }
+            };
+            defTopic.subtopics.push(defSub);
+            try { await storageManager.add('subtopics', defSub); } catch(_) {}
+          } else {
+            defSub._isSystem = true;
+          }
+          return { defTopic, defSub };
+        }
+
         async function ensureValidSelection(){
+          await ensureDefaultSubtopic(); // Luôn đảm bảo default tồn tại trước
           const set = data.settings;
-          if (!data.topics || data.topics.length === 0) { set.selectedTopicId = ''; set.selectedSubtopicId = ''; await saveData(); return; }
           const t = data.topics.find(x=>x.id===set.selectedTopicId);
           const s = t?.subtopics.find(x=>x.id===set.selectedSubtopicId);
           if(!t || !s){
-            const t0 = data.topics[0];
-            const s0 = t0?.subtopics?.[0];
-            set.selectedTopicId = t0?.id || '';
-            set.selectedSubtopicId = s0?.id || '';
+            // Fallback: chọn subtopic mặc định thay vì để trống
+            set.selectedTopicId = DEFAULT_TOPIC_ID;
+            set.selectedSubtopicId = DEFAULT_SUBTOPIC_ID;
             await saveData();
           }
         }
@@ -2563,23 +2606,39 @@ header.app-header{display:flex; align-items:center; justify-content:space-betwee
         bAdd.className='btn small';
         bAdd.innerHTML = '＋ Thêm';
         bAdd.title = 'Thêm Chủ đề con';
-        const menuContainer = document.createElement('div');
-        menuContainer.style.position = 'relative';
-        const bMore = document.createElement('button');
-        bMore.className = 'btn small ghost actions-menu-btn';
-        bMore.innerHTML = '...';
-        bMore.title = 'Thêm tùy chọn';
-        const menu = document.createElement('div');
-        menu.className = 'actions-menu';
-        const bEdit = document.createElement('button');
-        bEdit.className = 'menu-item';
-        bEdit.innerHTML = 'Sửa tên Chủ đề';
-        const bDel = document.createElement('button');
-        bDel.className = 'menu-item danger';
-        bDel.innerHTML = 'Xóa Chủ đề';
-        menu.append(bEdit, bDel);
-        menuContainer.append(bMore, menu);
-        act.append(bAdd, menuContainer);
+        // Topic hệ thống: ẩn nút Edit/Delete
+        const isSystemTopic = (topic.id === DEFAULT_TOPIC_ID || !!topic._isSystem);
+        if (isSystemTopic) {
+          // Chỉ hiển thị nút + Thêm chủ đề con; không cho Sửa/Xóa topic hệ thống
+          act.append(bAdd);
+        } else {
+          const menuContainer = document.createElement('div');
+          menuContainer.style.position = 'relative';
+          const bMore = document.createElement('button');
+          bMore.className = 'btn small ghost actions-menu-btn';
+          bMore.innerHTML = '...';
+          bMore.title = 'Thêm tùy chọn';
+          const menu = document.createElement('div');
+          menu.className = 'actions-menu';
+          const bEdit = document.createElement('button');
+          bEdit.className = 'menu-item';
+          bEdit.innerHTML = 'Sửa tên Chủ đề';
+          const bDel = document.createElement('button');
+          bDel.className = 'menu-item danger';
+          bDel.innerHTML = 'Xóa Chủ đề';
+          menu.append(bEdit, bDel);
+          menuContainer.append(bMore, menu);
+          act.append(bAdd, menuContainer);
+          // Attach bMore/bEdit/bDel events below via closure capture
+          topic.__menuRefs = { bMore, menu, bEdit, bDel };
+        }
+        // Add system badge for default topic
+        if (isSystemTopic) {
+          const badge = document.createElement('span');
+          badge.textContent = 'Mặc định';
+          badge.style.cssText = 'font-size:10px;background:var(--acc);color:white;border-radius:6px;padding:1px 6px;margin-left:6px;vertical-align:middle;opacity:0.8;';
+          title.appendChild(badge);
+        }
         header.append(chev, title, act);
         // Chevron toggles collapse/expand of subtopics
         chev.addEventListener('click', async (e) => {
@@ -2673,26 +2732,21 @@ header.app-header{display:flex; align-items:center; justify-content:space-betwee
           subBDel.addEventListener('click', ()=> showConfirmModal('Xác nhận xóa', `Bạn có chắc muốn xóa Chủ đề con "${st.name}"? Mọi dữ liệu liên quan sẽ bị mất.`, async (ok) => { if(!ok) return; topic.subtopics = topic.subtopics.filter(x=>x.id!==st.id); const set=data.settings; if(set.selectedSubtopicId===st.id){ set.selectedSubtopicId=''; set.selectedTopicId=''; ensureValidSelection(); } await storageManager.delete('subtopics', st.id); renderAll(); }));
         });
         
-        bMore.addEventListener('click', (e) => {
-          e.stopPropagation();
-          const isOpen = menu.classList.contains('show');
-          closeAllMenus();
-          if (isOpen) {
-            // Đang mở => đóng và KHÔNG mở lại
-            box.classList.remove('menu-active');
-          } else {
-            // Đang đóng => mở menu này và nâng z-index
-            menu.classList.add('show');
-            box.classList.add('menu-active');
-          }
-        });
-        bAdd.addEventListener('click', ()=> showInputModal('Tên Chủ đề con mới?', async (name) => { if(!name) return; const newSub = { id: uid('s'), topicId: topic.id, name, tasks: [], generalNotes: [], summaries: [], chatHistory: [], methods: [], stats:{ totalMinutes:0, sessionsCompleted:0, tasksCompleted: 0 }, sessions: [], timerState: { state: 'idle', prevState: null, remaining: 0, segmentTotal: 0, cycleIndex: 0 } }; topic.subtopics.push(newSub); await storageManager.add('subtopics', newSub); renderTopics(); }));
-        bEdit.addEventListener('click', ()=> showInputModal('Đổi tên Chủ đề', async (newName) => { if(!newName) return; topic.name=newName; await storageManager.update('topics', topic); renderTopics(); }, topic.name));
-        bDel.addEventListener('click', ()=> showConfirmModal('Xác nhận xóa', `Bạn có chắc muốn xóa Chủ đề "${topic.name}"? Mọi chủ đề con và dữ liệu liên quan sẽ bị mất.`, async (ok) => { if(!ok) return; data.topics = data.topics.filter(t=>t.id!==topic.id); delete collapsedMap[topic.id]; if(data.settings.selectedTopicId===topic.id){ data.settings.selectedTopicId=''; data.settings.selectedSubtopicId=''; ensureValidSelection(); } await storageManager.delete('topics', topic.id); for(const sub of topic.subtopics){ await storageManager.delete('subtopics', sub.id); } renderAll(); }));
-        // Prevent header toggle when clicking action buttons
-        bAdd.addEventListener('click', (e)=> e.stopPropagation());
-        bEdit.addEventListener('click', (e)=> e.stopPropagation());
-        bDel.addEventListener('click', (e)=> e.stopPropagation());
+                // bAdd: gắn cho cả system và non-system topic
+        bAdd.addEventListener('click', (e) => { e.stopPropagation(); showInputModal('Tên Chủ đề con mới?', async (name) => { if(!name) return; const newSub = { id: uid('s'), topicId: topic.id, name, tasks: [], generalNotes: [], summaries: [], chatHistory: [], methods: [], stats:{ totalMinutes:0, sessionsCompleted:0, tasksCompleted: 0 }, sessions: [], timerState: { state: 'idle', prevState: null, remaining: 0, segmentTotal: 0, cycleIndex: 0 } }; topic.subtopics.push(newSub); await storageManager.add('subtopics', newSub); renderTopics(); }); });
+        // bMore/bEdit/bDel: chỉ gắn khi không phải system topic
+        if (!isSystemTopic && topic.__menuRefs) {
+          const { bMore, menu, bEdit, bDel } = topic.__menuRefs;
+          bMore.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const isOpen = menu.classList.contains('show');
+            closeAllMenus();
+            if (isOpen) { box.classList.remove('menu-active'); }
+            else { menu.classList.add('show'); box.classList.add('menu-active'); }
+          });
+          bEdit.addEventListener('click', (e) => { e.stopPropagation(); showInputModal('Đổi tên Chủ đề', async (newName) => { if(!newName) return; topic.name=newName; await storageManager.update('topics', topic); renderTopics(); }, topic.name); });
+          bDel.addEventListener('click', (e) => { e.stopPropagation(); showConfirmModal('Xác nhận xóa', `Bạn có chắc muốn xóa Chủ đề "${topic.name}"? Mọi chủ đề con và dữ liệu liên quan sẽ bị mất.`, async (ok) => { if(!ok) return; data.topics = data.topics.filter(t=>t.id!==topic.id); delete collapsedMap[topic.id]; if(data.settings.selectedTopicId===topic.id){ await ensureValidSelection(); } await storageManager.delete('topics', topic.id); for(const sub of topic.subtopics){ await storageManager.delete('subtopics', sub.id); } renderAll(); }); });
+        }
         box.append(header, subs);
         wrap.appendChild(box);
       });
@@ -3053,7 +3107,18 @@ header.app-header{display:flex; align-items:center; justify-content:space-betwee
         this._startTick();
         this.updateUI();
       },
-      async start(){ if(!getCurrentSubtopic()){ toast('Hãy chọn một Chủ đề con trước khi bắt đầu'); return; } ensureAudio(); if(this.mode==='C' && this.state==='idle'){ this.state='work'; this.remaining=0; this.segmentTotal=0; this.cycleIndex=0; this._startTick(); this.updateUI(); } else if(this.state==='idle'){ this.cycleIndex = this.cycleIndex || 0; this.beginWork(); } else if(this.state==='paused'){ this.resume(); } await this.persistTimerState(true); },
+      async start(){
+        // Quick-Start UX: không cần chọn subtopic trước — nếu chưa chọn thì dùng default
+        if(!getCurrentSubtopic()) {
+          await ensureValidSelection();
+          renderContextBadge();
+        }
+        ensureAudio();
+        if(this.mode==='C' && this.state==='idle'){ this.state='work'; this.remaining=0; this.segmentTotal=0; this.cycleIndex=0; this._startTick(); this.updateUI(); }
+        else if(this.state==='idle'){ this.cycleIndex = this.cycleIndex || 0; this.beginWork(); }
+        else if(this.state==='paused'){ this.resume(); }
+        await this.persistTimerState(true);
+      },
       async pause(){ if(this.tickHandle){ clearInterval(this.tickHandle); this.tickHandle=null; } this.prevState=this.state; this.state='paused'; this.updateUI(); await this.persistTimerState(true); },
       async resume(){ if(this.state!=='paused'){ return; } this.state=this.prevState||'work'; this._startTick(); this.updateUI(); await this.persistTimerState(true); },
       async skip(){
@@ -4510,19 +4575,10 @@ function exportSummary(sum) {
         }
     }
     function updateMainViewVisibility() {
-        const hasSubtopic = !!getCurrentSubtopic();
+        // Quick-Start UX: timer luôn hiển thị, không cần chủ đề con
+        // welcomePanel và no-subtopic-selected đã bị loại bỏ
         const timerView = $('#view-timer');
-        const welcomePanel = $('#welcomePanel');
-        if (welcomePanel) {
-            welcomePanel.classList.toggle('hidden', hasSubtopic);
-        }
-        if (timerView) {
-            if (hasSubtopic) {
-                timerView.classList.remove('no-subtopic-selected');
-            } else {
-                timerView.classList.add('no-subtopic-selected');
-            }
-        }
+        if (timerView) timerView.classList.remove('no-subtopic-selected');
     }
     function updatePresetButtonsText() {
         const settings = data.settings;
@@ -4617,6 +4673,7 @@ function exportSummary(sum) {
         }
         data = window.data = merged;
         normalizeDataStructure(data);
+        await ensureDefaultSubtopic(); // Đảm bảo chủ đề mặc định luôn tồn tại
         await ensureValidSelection();
         await seedAchievedMilestones();
         renderAll();
