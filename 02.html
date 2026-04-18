@@ -2250,6 +2250,7 @@ header.app-header{display:flex; align-items:center; justify-content:space-betwee
     function getActiveYoutubeUrl(){
         try {
             if (sessionYoutubeUrl) return sessionYoutubeUrl;
+            if (data?.settings?.youtubeUrl) return data.settings.youtubeUrl.trim();
             const el = document.getElementById('set_youtubeUrl');
             const v = (el && el.value ? el.value : '').trim();
             return v;
@@ -2375,10 +2376,10 @@ header.app-header{display:flex; align-items:center; justify-content:space-betwee
             customBg: '',
             useCustomSounds: false,
             customSounds: { work_end: '', break_end: '', long_end: '' },
-            youtubeUrl: '',
+            youtubeUrl: 'https://youtu.be/BYTxPFj44uo?si=fLgeVU7ACNG1CBlk',
             youtubeVolume: 80,
             useYtThumbnailAsBg: true,
-            panelOpacity: 0.85,
+            panelOpacity: 0.12,
             panelBlur: 10,
             backgroundMode: 'cover',
             backupDaysToKeep: 7,
@@ -3559,6 +3560,7 @@ function exportSummary(sum) {
           }
 
           const newYtUrl = $('#set_youtubeUrl').value.trim();
+          s.youtubeUrl = newYtUrl;
           s.useYtThumbnailAsBg = $('#set_ytThumbAsBg').checked;
           s.youtubeVolume = parseInt($('#ytSoundVolume').value, 10);
           // Ghi nhận URL mới cho phiên nhưng KHÔNG đụng đến player ở đây để tránh dừng nhạc
@@ -4681,6 +4683,8 @@ function exportSummary(sum) {
         try { storageManager.autoBackup(data); } catch (e) { console.warn('AutoBackup error:', e); }
         bindEvents();
         applyTheme();
+        sessionYoutubeUrl = data.settings.youtubeUrl || '';
+        await updateYouTubePlayer();
       } catch (err) {
         console.error('Initialization error:', err);
         toast(`Lỗi khởi tạo: ${err.message}`);
